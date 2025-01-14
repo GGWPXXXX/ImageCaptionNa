@@ -1,69 +1,99 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="UTF-8" />
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script src="https://cdn.tailwindcss.com"></script>
-  </head>
-  <body>
-    <script type="text/javascript">
-      function previewFile() {
-        const preview = document.querySelector("img");
-        const file = document.querySelector("input[type=file]").files[0];
-        const reader = new FileReader();
-        reader.addEventListener(
-          "load",
-          function () {
-            preview.src = reader.result; // show image in <img> tag
-            uploadFile(file);
-          },
-          false
-        );
-        if (file) {
-          reader.readAsDataURL(file);
-        }
-      }
-
-      function uploadFile(file) {
-        var formData = new FormData();
-        formData.append("file", file);
-        fetch("/upload", {
-          method: "POST",
-          body: formData,
-        })
-          .then((response) => {
-            console.log(response);
-          })
-          .catch((error) => {
-            console.error(error);
-          });
-      }
-    </script>
+    <title>Image Captioning</title>
+</head>
+<body>
     <div class="grid grid-rows-2 gap-4 p-4">
-      <form
-        action="http://127.0.0.1:8000/caption"
-        method="post"
-        enctype="multipart/form-data"
-      >
-        <div class="flex flex-col gap-4 justify-center items-center">
-          <h1 class="text-3xl font-bold">Image Captioning 📸</h1>
-          <input
-            type="file"
-            name="file"
-            accept="image/*"
-            id="imageInput"
-            required
-            onchange="previewFile()"
-          /><br />
-          <img src="" height="200" alt="Image preview..." />
-          <button
-            type="submit"
-            class="bg-blue-500 text-white px-2 rounded-sm w-24 py-2 hover:bg-blue-300 duration-500"
-          >
-            Submit
-          </button>
-        </div>
-      </form>
+        <form id="imageForm" onsubmit="handleSubmit(event)" method="post" enctype="multipart/form-data">
+            <div class="flex flex-col gap-4 justify-center items-center">
+                <h1 class="text-3xl font-bold">Image Captioning 📸</h1>
+                <input
+                    type="file"
+                    name="file"
+                    accept="image/*"
+                    id="imageInput"
+                    required
+                    onchange="previewFile()"
+                />
+                <br />
+                <img id="previewImage" src="" height="200" alt="Image preview..." />
+                <br />
+                <button
+                    type="submit"
+                    class="bg-blue-500 text-white px-2 rounded-sm w-24 py-2 hover:bg-blue-300 duration-500"
+                >
+                    Submit
+                </button>
+            </div>
+        </form>
+
+        <!-- Area to show the caption -->
+        <div id="result" class="mt-4 p-4 text-xl text-center"></div>
     </div>
-  </body>
+
+    <script type="text/javascript">
+        function previewFile() {
+            const preview = document.getElementById("previewImage");
+            const file = document.getElementById("imageInput").files[0];
+            const reader = new FileReader();
+            reader.addEventListener(
+                "load",
+                function () {
+                    preview.src = reader.result; // show image in <img> tag
+                },
+                false
+            );
+            if (file) {
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function handleSubmit(event) {
+            event.preventDefault(); // Prevent the default form submission
+
+            const formData = new FormData(document.getElementById("imageForm"));
+            
+            fetch("http://127.0.0.1:8000/upload", {
+                method: "POST",
+                body: formData,
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+                if (data.message) {
+                    // File uploaded successfully, now call caption endpoint
+                    captionImage(formData);
+                }
+            })
+            .catch(error => {
+                console.error("Error during upload:", error);
+            });
+        }
+
+        function captionImage(formData) {
+            // Assuming the file is uploaded, we get the file name here
+            const fileName = formData.get("file").name;
+
+            fetch(`http://127.0.0.1:8000/caption?file_name=${fileName}`, {
+                method: "POST"
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.caption) {
+                    document.getElementById("result").innerHTML = `<h2>Generated Caption:</h2><p>${data.caption}</p>`;
+                } else {
+                    document.getElementById("result").innerHTML = "Error generating caption";
+                }
+            })
+            .catch(error => {
+                console.error("Error generating caption:", error);
+                document.getElementById("result").innerHTML = "Error generating caption";
+            });
+        }
+    </script>
+</body>
 </html>
