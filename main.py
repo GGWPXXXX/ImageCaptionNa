@@ -39,6 +39,7 @@ async def caption_image(file: UploadFile = File(...)):
 
         # Assuming query function processes image bytes and returns a caption
         caption = query(file_path)
+        print(caption[0]["generated_text"])
         os.remove(file_path)  # Clean up by removing the temporary file
         return {"caption": caption[0]["generated_text"]}
 
