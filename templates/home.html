@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Image Captioning</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div class="flex justify-center items-center min-h-screen bg-gray-100">
+        <div class="bg-white p-6 rounded-md shadow-lg w-full max-w-lg">
+            <h1 class="text-3xl font-bold mb-4 text-center">Image Captioning 📸</h1>
+            
+            <!-- Server status indicator -->
+            <div id="serverStatus" class="text-center mb-4 p-2 rounded"></div>
+            
+            <div class="mb-4">
+                <div class="flex flex-col items-center">
+                    <input 
+                        type="file" 
+                        id="imageInput" 
+                        accept="image/*" 
+                        class="border border-gray-300 p-2 rounded-md mb-4" 
+                        onchange="previewFile()"
+                    />
+                    
+                    <img 
+                        id="imagePreview" 
+                        src="" 
+                        alt="Image preview" 
+                        class="mb-4 w-64 hidden"
+                    />
+                    
+                    <button 
+                        type="button"
+                        id="submitButton"
+                        class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-300"
+                    
+                    >
+                        Submit
+                    </button>
+                </div>
+            </div>
+
+            <div id="loadingIndicator" class="hidden mt-4">
+                <div class="flex justify-center items-center">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                </div>
+            </div>
+
+            <div id="responseMessage" class="mt-4 hidden">
+                <p class="text-lg font-semibold text-center" id="captionMessage"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const serverStatus = document.getElementById('serverStatus');
+        const submitButton = document.getElementById('submitButton');
+
+
+
+        function previewFile() {
+            const preview = document.getElementById("imagePreview");
+            const file = document.getElementById("imageInput").files[0];
+            const reader = new FileReader();
+
+            reader.onloadend = function () {
+                preview.src = reader.result;
+                preview.classList.remove("hidden");
+            };
+
+            if (file) {
+                reader.readAsDataURL(file);
+            }
+        }
+
+        document.getElementById('submitButton').addEventListener('click', async function() {
+            if (this.disabled) return;
+
+            const formData = new FormData();
+            const fileInput = document.getElementById("imageInput");
+            const loadingIndicator = document.getElementById("loadingIndicator");
+            const responseMessage = document.getElementById("responseMessage");
+            const captionMessage = document.getElementById("captionMessage");
+            
+            if (!fileInput.files[0]) {
+                alert("Please upload an image.");
+                return;
+            }
+
+            formData.append("file", fileInput.files[0]);
+            
+            loadingIndicator.classList.remove("hidden");
+            responseMessage.classList.add("hidden");
+
+            try {
+                const response = await fetch("/caption/", {
+                    method: "POST",
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.text();
+                    throw new Error(errorData);
+                }
+
+                const data = await response.json();
+                captionMessage.textContent = data.caption;
+                responseMessage.classList.remove("hidden");
+            } catch (error) {
+                console.error('Error:', error);
+                captionMessage.textContent = `Error: ${error.message}`;
+                responseMessage.classList.remove("hidden");
+            } finally {
+                loadingIndicator.classList.add("hidden");
+            }
+        });
+    </script>
+</body>
+</html>
